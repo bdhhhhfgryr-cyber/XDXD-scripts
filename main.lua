@@ -387,7 +387,7 @@ tpTitle.Parent = tpFrame
 local tpStatus = Instance.new("TextLabel")
 tpStatus.Size = UDim2.new(1, 0, 0, 25)
 tpStatus.Position = UDim2.new(0, 0, 0, 35)
-tpStatus.Text = "Click on a part to teleport"
+tpStatus.Text = "Click anywhere to teleport"
 tpStatus.TextColor3 = Color3.fromRGB(150, 200, 255)
 tpStatus.TextScaled = true
 tpStatus.BackgroundTransparency = 1
@@ -406,55 +406,32 @@ Instance.new("UICorner", tpClose).CornerRadius = UDim.new(0, 5)
 tpGui.Enabled = false
 
 local tpMode = false
-local selectionBox = nil
 
-local function teleportToPart(part)
+local function teleportToMouse()
     local c = player.Character
     if not c then return end
     local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso") or c:FindFirstChild("UpperTorso")
     if not root then return end
-    root.CFrame = CFrame.new(part.Position.X, part.Position.Y + 3, part.Position.Z)
+    local hit = player:GetMouse().Hit
+    root.CFrame = CFrame.new(hit.X, hit.Y + 2, hit.Z)
     tpStatus.Text = "Teleported!"
     task.wait(1)
-    tpStatus.Text = "Click on a part to teleport"
+    tpStatus.Text = "Click anywhere to teleport"
 end
 
 local function toggleTPTool()
     tpMode = not tpMode
     tpGui.Enabled = tpMode
     if tpMode then
-        tpStatus.Text = "Click on a part to teleport"
-        if not selectionBox then
-            selectionBox = Instance.new("SelectionBox")
-            selectionBox.Name = "TPSelectionBox"
-            selectionBox.Color3 = Color3.fromRGB(0, 255, 0)
-            selectionBox.LineThickness = 0.1
-            selectionBox.Parent = espGui
-        end
-    else
-        if selectionBox then selectionBox.Adornee = nil end
+        tpStatus.Text = "Click anywhere to teleport"
     end
 end
 
 tpClose.MouseButton1Click:Connect(toggleTPTool)
 
-local mouse = player:GetMouse()
-mouse.Move:Connect(function()
-    if tpMode and selectionBox then
-        local target = mouse.Target
-        if target and target:IsA("BasePart") then
-            selectionBox.Adornee = target
-        else
-            selectionBox.Adornee = nil
-        end
-    end
-end)
-mouse.Button1Down:Connect(function()
+player:GetMouse().Button1Down:Connect(function()
     if tpMode then
-        local target = mouse.Target
-        if target and target:IsA("BasePart") then
-            teleportToPart(target)
-        end
+        teleportToMouse()
     end
 end)
 
@@ -522,4 +499,3 @@ player.CharacterAdded:Connect(function(c)
 end)
 
 print("XDXD's CMD Loaded")
-print("Commands: fly, unfly, noclip, clip, speed [1-999], esp, tptool")
