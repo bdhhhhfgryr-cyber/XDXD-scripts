@@ -40,10 +40,14 @@ local flyGui = nil
 local attachment, lv, ao
 local noclipActive = false
 local noclipConnection = nil
-
 local espEnabled = false
 local espContainer = nil
 local playerData = {}
+local tpMode = false
+local selectionBox = nil
+local tpGui = nil
+local tpListGui = nil
+local helpGui = nil
 
 local function findMurderer()
     for _, p in ipairs(game.Players:GetPlayers()) do
@@ -99,7 +103,6 @@ local function setupESP()
     espContainer = Instance.new("Folder")
     espContainer.Name = "XDXD_ESP"
     espContainer.Parent = game.CoreGui
-    
     for _, p in ipairs(game.Players:GetPlayers()) do
         if p ~= player and p.Character then
             local char = p.Character
@@ -110,10 +113,8 @@ local function setupESP()
             highlight.OutlineTransparency = 0
             highlight.Adornee = char
             highlight.Parent = espContainer
-            
             local murderer = findMurderer()
             local sheriff = findSheriff()
-            
             if p == murderer then
                 highlight.FillColor = Color3.fromRGB(255, 0, 0)
                 highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
@@ -124,7 +125,6 @@ local function setupESP()
                 highlight.FillColor = Color3.fromRGB(0, 255, 0)
                 highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
             end
-            
             local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
             if head then
                 local bill = Instance.new("BillboardGui")
@@ -150,7 +150,9 @@ end
 
 local function refreshESP()
     if espEnabled then
-        if espContainer then espContainer:Destroy() end
+        if espContainer then
+            espContainer:Destroy()
+        end
         setupESP()
     end
 end
@@ -198,28 +200,39 @@ if game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game.Repli
     if dataEvent then
         dataEvent.OnClientEvent:Connect(function(data)
             playerData = data
-            if espEnabled then refreshESP() end
+            if espEnabled then
+                refreshESP()
+            end
         end)
     end
 end
 
 game.Players.PlayerAdded:Connect(function()
     task.wait(0.5)
-    if espEnabled then refreshESP() end
+    if espEnabled then
+        refreshESP()
+    end
 end)
 
 game.Players.PlayerRemoving:Connect(function()
     task.wait(0.5)
-    if espEnabled then refreshESP() end
+    if espEnabled then
+        refreshESP()
+    end
 end)
 
 player.CharacterAdded:Connect(function()
     task.wait(0.5)
-    if espEnabled then refreshESP() end
+    if espEnabled then
+        refreshESP()
+    end
 end)
 
 local function createFlyGUI()
-    if flyGui then flyGui:Destroy() flyGui = nil end
+    if flyGui then
+        flyGui:Destroy()
+        flyGui = nil
+    end
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "XDXDsFly"
     ScreenGui.Parent = player.PlayerGui
@@ -428,7 +441,10 @@ local function toggleNoclip()
             end
         end)
     else
-        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
         local c = player.Character
         if c then
             for _, part in ipairs(c:GetDescendants()) do
@@ -470,10 +486,6 @@ local function setSpeed(speedVal)
     end
 end
 
-local tpMode = false
-local selectionBox = nil
-local tpGui = nil
-
 local function createTPTool()
     if tpGui then
         tpGui:Destroy()
@@ -483,7 +495,6 @@ local function createTPTool()
     tpGui.Name = "XDXD_TPTool"
     tpGui.Parent = game.CoreGui
     tpGui.ResetOnSpawn = false
-    
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 200, 0, 120)
     frame.Position = UDim2.new(1, -210, 0.5, -60)
@@ -495,7 +506,6 @@ local function createTPTool()
     frame.Draggable = true
     frame.Parent = tpGui
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-    
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
     title.Text = "XDXD's TP Tool"
@@ -503,7 +513,6 @@ local function createTPTool()
     title.TextScaled = true
     title.BackgroundTransparency = 1
     title.Parent = frame
-    
     local status = Instance.new("TextLabel")
     status.Size = UDim2.new(1, 0, 0, 25)
     status.Position = UDim2.new(0, 0, 0, 35)
@@ -512,7 +521,6 @@ local function createTPTool()
     status.TextScaled = true
     status.BackgroundTransparency = 1
     status.Parent = frame
-    
     local tpStart = Instance.new("TextButton")
     tpStart.Size = UDim2.new(0, 80, 0, 25)
     tpStart.Position = UDim2.new(0.5, -85, 0, 70)
@@ -522,7 +530,6 @@ local function createTPTool()
     tpStart.BorderSizePixel = 0
     tpStart.Parent = frame
     Instance.new("UICorner", tpStart).CornerRadius = UDim.new(0, 5)
-    
     local tpClose = Instance.new("TextButton")
     tpClose.Size = UDim2.new(0, 80, 0, 25)
     tpClose.Position = UDim2.new(0.5, 5, 0, 70)
@@ -532,7 +539,6 @@ local function createTPTool()
     tpClose.BorderSizePixel = 0
     tpClose.Parent = frame
     Instance.new("UICorner", tpClose).CornerRadius = UDim.new(0, 5)
-    
     local function teleportToMouse()
         local c = player.Character
         if not c then return end
@@ -547,7 +553,6 @@ local function createTPTool()
         tpStart.Text = "TP START"
         tpStart.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     end
-    
     tpStart.MouseButton1Click:Connect(function()
         tpMode = not tpMode
         if tpMode then
@@ -570,7 +575,6 @@ local function createTPTool()
             end
         end
     end)
-    
     tpClose.MouseButton1Click:Connect(function()
         tpGui:Destroy()
         tpGui = nil
@@ -580,7 +584,6 @@ local function createTPTool()
             selectionBox = nil
         end
     end)
-    
     local mouse = player:GetMouse()
     mouse.Move:Connect(function()
         if tpMode and selectionBox then
@@ -613,11 +616,166 @@ local function toggleTPTool()
     end
 end
 
+local function toggleTPList()
+    if tpListGui then
+        tpListGui:Destroy()
+        tpListGui = nil
+        return
+    end
+    tpListGui = Instance.new("ScreenGui")
+    tpListGui.Name = "XDXDsTPGUI"
+    tpListGui.Parent = game.CoreGui
+    tpListGui.DisplayOrder = 9999
+    tpListGui.IgnoreGuiInset = true
+    local f = Instance.new("Frame")
+    f.Parent = tpListGui
+    f.Size = UDim2.new(.45, 0, .65, 0)
+    f.Position = UDim2.new(.275, 0, .175, 0)
+    f.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    local t = Instance.new("Frame")
+    t.Parent = f
+    t.Size = UDim2.new(1, 0, 0, 35)
+    t.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    local tt = Instance.new("TextLabel")
+    tt.Parent = t
+    tt.Size = UDim2.new(1, 0, 1, 0)
+    tt.BackgroundTransparency = 1
+    tt.Text = "XDXD's TP GUI"
+    tt.TextColor3 = Color3.new(1, 1, 1)
+    tt.TextSize = 20
+    tt.Font = Enum.Font.SourceSansBold
+    local cr = Instance.new("TextLabel")
+    cr.Parent = f
+    cr.Size = UDim2.new(1, 0, 0, 20)
+    cr.Position = UDim2.new(0, 0, 0, 35)
+    cr.BackgroundTransparency = 1
+    cr.Text = "Click on player to teleport"
+    cr.TextColor3 = Color3.fromRGB(160, 160, 160)
+    cr.TextSize = 13
+    cr.Font = Enum.Font.SourceSansItalic
+    cr.TextXAlignment = Enum.TextXAlignment.Center
+    local mb = Instance.new("TextButton")
+    mb.Parent = t
+    mb.Size = UDim2.new(0, 35, 0, 35)
+    mb.Position = UDim2.new(1, -70, 0, 0)
+    mb.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    mb.Text = "-"
+    mb.TextColor3 = Color3.new(1, 1, 1)
+    local cb = Instance.new("TextButton")
+    cb.Parent = t
+    cb.Size = UDim2.new(0, 35, 0, 35)
+    cb.Position = UDim2.new(1, -35, 0, 0)
+    cb.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    cb.Text = "X"
+    cb.TextColor3 = Color3.new(1, 1, 1)
+    local sc = Instance.new("ScrollingFrame")
+    sc.Parent = f
+    sc.Size = UDim2.new(1, -10, 1, -60)
+    sc.Position = UDim2.new(0, 5, 0, 55)
+    sc.BackgroundTransparency = 1
+    sc.ScrollBarThickness = 6
+    local ll = Instance.new("UIListLayout")
+    ll.Parent = sc
+    ll.Padding = UDim.new(0, 6)
+    ll.SortOrder = Enum.SortOrder.LayoutOrder
+    local function updateTPList()
+        for _, c in ipairs(sc:GetChildren()) do
+            if c:IsA("Frame") then
+                c:Destroy()
+            end
+        end
+        for _, pl in ipairs(game.Players:GetPlayers()) do
+            if pl == player then
+                continue
+            end
+            local r = Instance.new("Frame")
+            r.Parent = sc
+            r.Size = UDim2.new(1, 0, 0, 42)
+            r.BackgroundTransparency = 1
+            local rl = Instance.new("UIListLayout")
+            rl.Parent = r
+            rl.FillDirection = Enum.FillDirection.Horizontal
+            rl.Padding = UDim.new(0, 8)
+            rl.VerticalAlignment = Enum.VerticalAlignment.Center
+            local i = Instance.new("ImageLabel")
+            i.Parent = r
+            i.Size = UDim2.new(0, 42, 0, 42)
+            i.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            pcall(function()
+                i.Image = game.Players:GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+            end)
+            local b = Instance.new("TextButton")
+            b.Parent = r
+            b.Size = UDim2.new(1, 0, 1, 0)
+            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            b.Text = pl.Name
+            b.TextColor3 = Color3.new(1, 1, 1)
+            b.TextSize = 16
+            b.TextXAlignment = Enum.TextXAlignment.Left
+            b.MouseButton1Click:Connect(function()
+                pcall(function()
+                    local rt = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    local tg = pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")
+                    if rt and tg then
+                        rt.CFrame = tg.CFrame * CFrame.new(0, 0, -3)
+                    end
+                end)
+            end)
+        end
+        sc.CanvasSize = UDim2.new(0, 0, 0, ll.AbsoluteContentSize.Y + 10)
+    end
+    updateTPList()
+    game.Players.PlayerAdded:Connect(updateTPList)
+    game.Players.PlayerRemoving:Connect(updateTPList)
+    local minimized = false
+    mb.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            f.Size = UDim2.new(.45, 0, 0, 35)
+            sc.Visible = false
+            cr.Visible = false
+            mb.Text = "+"
+        else
+            f.Size = UDim2.new(.45, 0, .65, 0)
+            sc.Visible = true
+            cr.Visible = true
+            mb.Text = "-"
+        end
+    end)
+    cb.MouseButton1Click:Connect(function()
+        tpListGui:Destroy()
+        tpListGui = nil
+    end)
+    local dragging, dragStart, startPos
+    t.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = f.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    t.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
 local function loadESP()
     loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-esp-gui-224252"))()
 end
-
-local helpGui = nil
 
 local function createHelpGUI()
     if helpGui then
@@ -625,12 +783,10 @@ local function createHelpGUI()
         helpGui = nil
         return
     end
-    
     helpGui = Instance.new("ScreenGui")
     helpGui.Name = "XDXD_Help"
     helpGui.Parent = game.CoreGui
     helpGui.ResetOnSpawn = false
-    
     local helpFrame = Instance.new("Frame")
     helpFrame.Size = UDim2.new(0, 300, 0, 350)
     helpFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
@@ -642,7 +798,6 @@ local function createHelpGUI()
     helpFrame.Draggable = true
     helpFrame.Parent = helpGui
     Instance.new("UICorner", helpFrame).CornerRadius = UDim.new(0, 10)
-    
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
     title.Text = "XDXD's Commands"
@@ -650,7 +805,6 @@ local function createHelpGUI()
     title.TextScaled = true
     title.BackgroundTransparency = 1
     title.Parent = helpFrame
-    
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 30, 0, 25)
     closeBtn.Position = UDim2.new(1, -35, 0, 2)
@@ -661,9 +815,11 @@ local function createHelpGUI()
     closeBtn.Parent = helpFrame
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
     closeBtn.MouseButton1Click:Connect(function()
-        if helpGui then helpGui:Destroy() helpGui = nil end
+        if helpGui then
+            helpGui:Destroy()
+            helpGui = nil
+        end
     end)
-    
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, 0, 1, -35)
     scroll.Position = UDim2.new(0, 0, 0, 30)
@@ -672,30 +828,28 @@ local function createHelpGUI()
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     scroll.ScrollBarThickness = 4
     scroll.Parent = helpFrame
-    
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 4)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = scroll
-    
     local commands = {
         {cmd = "fly", desc = "Toggle fly", type = "universal"},
         {cmd = "unfly", desc = "Disable fly", type = "universal"},
         {cmd = "noclip", desc = "Toggle noclip", type = "universal"},
         {cmd = "clip", desc = "Disable noclip", type = "universal"},
         {cmd = "speed [1-999]", desc = "Set walkspeed", type = "universal"},
+        {cmd = "tptool", desc = "Toggle teleport tool", type = "universal"},
+        {cmd = "tplist", desc = "Toggle TP list", type = "universal"},
         {cmd = "esp", desc = "Load ESP GUI", type = "universal"},
         {cmd = "espmm2", desc = "Toggle MM2 ESP", type = "mm2"},
         {cmd = "autogun", desc = "TP to dropped gun", type = "mm2"},
-        {cmd = "tptool", desc = "Toggle teleport tool", type = "universal"},
+        {cmd = "help", desc = "Show this menu", type = "universal"},
     }
-    
     for _, info in ipairs(commands) do
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, -10, 0, 28)
         row.BackgroundTransparency = 1
         row.Parent = scroll
-        
         local dot = Instance.new("Frame")
         dot.Size = UDim2.new(0, 12, 0, 12)
         dot.Position = UDim2.new(0, 5, 0.5, -6)
@@ -707,7 +861,6 @@ local function createHelpGUI()
         dot.BorderSizePixel = 0
         dot.Parent = row
         Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-        
         local cmdLabel = Instance.new("TextLabel")
         cmdLabel.Size = UDim2.new(0, 100, 1, 0)
         cmdLabel.Position = UDim2.new(0, 22, 0, 0)
@@ -717,7 +870,6 @@ local function createHelpGUI()
         cmdLabel.BackgroundTransparency = 1
         cmdLabel.Font = Enum.Font.GothamBold
         cmdLabel.Parent = row
-        
         local descLabel = Instance.new("TextLabel")
         descLabel.Size = UDim2.new(1, -130, 1, 0)
         descLabel.Position = UDim2.new(0, 125, 0, 0)
@@ -728,34 +880,74 @@ local function createHelpGUI()
         descLabel.Font = Enum.Font.Gotham
         descLabel.TextXAlignment = Enum.TextXAlignment.Left
         descLabel.Parent = row
-        
         scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     end
 end
 
 local function handleCommand(cmd)
     cmd = cmd:lower():gsub("^%s+", ""):gsub("%s+$", "")
-    if cmd == "fly" then toggleFly() return end
-    if cmd == "unfly" then if flying then stopFly() if flyGui then flyGui:Destroy() flyGui = nil end end return end
-    if cmd == "noclip" then toggleNoclip() return end
-    if cmd == "clip" then toggleClip() return end
-    if cmd:find("speed") then
-        local num = tonumber(cmd:match("%d+"))
-        if num then setSpeed(num) end
+    if cmd == "fly" then
+        toggleFly()
         return
     end
-    if cmd == "esp" then loadESP() return end
-    if cmd == "espmm2" then toggleESP() return end
-    if cmd == "autogun" then autoGun() return end
-    if cmd == "tptool" then toggleTPTool() return end
-    if cmd == "help" then createHelpGUI() return end
+    if cmd == "unfly" then
+        if flying then
+            stopFly()
+            if flyGui then
+                flyGui:Destroy()
+                flyGui = nil
+            end
+        end
+        return
+    end
+    if cmd == "noclip" then
+        toggleNoclip()
+        return
+    end
+    if cmd == "clip" then
+        toggleClip()
+        return
+    end
+    if cmd == "speed" then
+        local num = tonumber(cmd:match("%d+"))
+        if num then
+            setSpeed(num)
+        end
+        return
+    end
+    if cmd == "tptool" then
+        toggleTPTool()
+        return
+    end
+    if cmd == "tplist" then
+        toggleTPList()
+        return
+    end
+    if cmd == "esp" then
+        loadESP()
+        return
+    end
+    if cmd == "espmm2" then
+        toggleESP()
+        return
+    end
+    if cmd == "autogun" then
+        autoGun()
+        return
+    end
+    if cmd == "help" then
+        createHelpGUI()
+        return
+    end
     cmdbar.Text = ""
 end
 
 cmdbar.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local cmd = cmdbar.Text
-        if cmd ~= "" then handleCommand(cmd) end
+        if cmd ~= "" then
+            handleCommand(cmd)
+        end
     end
 end)
 
@@ -788,14 +980,20 @@ end)
 
 player.CharacterAdded:Connect(function(c)
     task.wait(0.5)
-    if flying then setupFly() end
+    if flying then
+        setupFly()
+    end
     if noclipActive then
         for _, part in ipairs(c:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end
-    if espEnabled then refreshESP() end
+    if espEnabled then
+        refreshESP()
+    end
 end)
 
 print("XDXD's Commands Loaded!")
-print("Commands: fly, unfly, noclip, clip, speed [1-999], esp, espmm2, autogun, tptool, help")
+print("Commands: fly, unfly, noclip, clip, speed [1-999], tptool, tplist, esp, espmm2, autogun, help")
