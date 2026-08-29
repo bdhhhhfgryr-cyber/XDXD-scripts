@@ -2,6 +2,7 @@ local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local camera = workspace.CurrentCamera
+local TS = game:GetService("TweenService")
 
 local cmdGui = Instance.new("ScreenGui")
 cmdGui.Name = "XDXDsCmd"
@@ -37,6 +38,185 @@ local flying = false
 local flySpeed = 50
 local flyGui = nil
 local attachment, lv, ao
+local noclipActive = false
+local noclipConnection = nil
+
+local espEnabled = false
+local espContainer = nil
+local playerData = {}
+
+local function findMurderer()
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p ~= player then
+            local char = p.Character
+            if char and char:FindFirstChild("Knife") then
+                return p
+            end
+            if p.Backpack:FindFirstChild("Knife") then
+                return p
+            end
+        end
+    end
+    if playerData then
+        for name, data in pairs(playerData) do
+            if data.Role == "Murderer" then
+                local p = game.Players:FindFirstChild(name)
+                if p then return p end
+            end
+        end
+    end
+    return nil
+end
+
+local function findSheriff()
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p ~= player then
+            local char = p.Character
+            if char and char:FindFirstChild("Gun") then
+                return p
+            end
+            if p.Backpack:FindFirstChild("Gun") then
+                return p
+            end
+        end
+    end
+    if playerData then
+        for name, data in pairs(playerData) do
+            if data.Role == "Sheriff" then
+                local p = game.Players:FindFirstChild(name)
+                if p then return p end
+            end
+        end
+    end
+    return nil
+end
+
+local function setupESP()
+    if espContainer then
+        espContainer:Destroy()
+        espContainer = nil
+    end
+    espContainer = Instance.new("Folder")
+    espContainer.Name = "XDXD_ESP"
+    espContainer.Parent = game.CoreGui
+    
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local char = p.Character
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESP_" .. p.Name
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = char
+            highlight.Parent = espContainer
+            
+            local murderer = findMurderer()
+            local sheriff = findSheriff()
+            
+            if p == murderer then
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+            elseif p == sheriff then
+                highlight.FillColor = Color3.fromRGB(0, 150, 255)
+                highlight.OutlineColor = Color3.fromRGB(0, 150, 255)
+            else
+                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+            end
+            
+            local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            if head then
+                local bill = Instance.new("BillboardGui")
+                bill.Size = UDim2.new(0, 150, 0, 30)
+                bill.Adornee = head
+                bill.AlwaysOnTop = true
+                bill.Parent = espContainer
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.TextScaled = true
+                label.Font = Enum.Font.GothamBold
+                local role = "Innocent"
+                if p == murderer then role = "MURDERER"
+                elseif p == sheriff then role = "SHERIFF" end
+                label.Text = p.Name .. " [" .. role .. "]"
+                label.TextColor3 = p == murderer and Color3.fromRGB(255, 0, 0) or p == sheriff and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(0, 255, 0)
+                label.Parent = bill
+            end
+        end
+    end
+end
+
+local function refreshESP()
+    if espEnabled then
+        if espContainer then espContainer:Destroy() end
+        setupESP()
+    end
+end
+
+local function toggleESP()
+    espEnabled = not espEnabled
+    if espEnabled then
+        setupESP()
+    else
+        if espContainer then
+            espContainer:Destroy()
+            espContainer = nil
+        end
+    end
+end
+
+local function autoGun()
+    local gun = nil
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v.Name == "GunDrop" then
+            gun = v
+            break
+        end
+    end
+    if not gun then
+        cmdbar.PlaceholderText = "[ERROR] No dropped gun!"
+        task.wait(1)
+        cmdbar.PlaceholderText = "XDXD >"
+        cmdbar.Text = ""
+        return
+    end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.CFrame = CFrame.new(gun.Position.X, gun.Position.Y + 2, gun.Position.Z)
+    cmdbar.PlaceholderText = "[GUN TAKEN]"
+    task.wait(1)
+    cmdbar.PlaceholderText = "XDXD >"
+    cmdbar.Text = ""
+end
+
+if game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game.ReplicatedStorage.Remotes:FindFirstChild("Gameplay") then
+    local dataEvent = game.ReplicatedStorage.Remotes.Gameplay:FindFirstChild("PlayerDataChanged")
+    if dataEvent then
+        dataEvent.OnClientEvent:Connect(function(data)
+            playerData = data
+            if espEnabled then refreshESP() end
+        end)
+    end
+end
+
+game.Players.PlayerAdded:Connect(function()
+    task.wait(0.5)
+    if espEnabled then refreshESP() end
+end)
+
+game.Players.PlayerRemoving:Connect(function()
+    task.wait(0.5)
+    if espEnabled then refreshESP() end
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if espEnabled then refreshESP() end
+end)
 
 local function createFlyGUI()
     if flyGui then flyGui:Destroy() flyGui = nil end
@@ -234,9 +414,6 @@ local function toggleFly()
     end
 end
 
-local noclipActive = false
-local noclipConnection = nil
-
 local function toggleNoclip()
     noclipActive = not noclipActive
     if noclipActive then
@@ -293,147 +470,268 @@ local function setSpeed(speedVal)
     end
 end
 
-local espGui = Instance.new("ScreenGui")
-espGui.Name = "ESP_GUI"
-espGui.ResetOnSpawn = false
-espGui.Parent = player:WaitForChild("PlayerGui")
-
-local espButton = Instance.new("TextButton")
-espButton.Size = UDim2.new(0, 180, 0, 50)
-espButton.Position = UDim2.new(0, 20, 0, 20)
-espButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-espButton.TextSize = 20
-espButton.Font = Enum.Font.GothamBold
-espButton.Text = "ESP: OFF"
-espButton.Parent = espGui
-Instance.new("UICorner", espButton).CornerRadius = UDim.new(0, 10)
-
-espGui.Enabled = false
-
-local espEnabled = false
-
-local function removeESP(p)
-    if p.Character then
-        local highlight = p.Character:FindFirstChild("ESPHighlight")
-        if highlight then highlight:Destroy() end
-    end
-end
-
-local function addESP(p)
-    if p == player then return end
-    if not espEnabled then return end
-    local character = p.Character
-    if not character then return end
-    if character:FindFirstChild("ESPHighlight") then return end
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESPHighlight"
-    highlight.FillColor = Color3.fromRGB(0, 255, 0)
-    highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = character
-end
-
-local function updateESP()
-    for _, p in ipairs(game.Players:GetPlayers()) do
-        if p ~= player then
-            if espEnabled then addESP(p) else removeESP(p) end
-        end
-    end
-end
-
-for _, p in ipairs(game.Players:GetPlayers()) do
-    if p ~= player then
-        p.CharacterAdded:Connect(function()
-            task.wait(0.1)
-            if espEnabled then addESP(p) end
-        end)
-    end
-end
-
-espButton.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    espButton.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(45, 45, 45)
-    updateESP()
-end)
-
-local tpGui = Instance.new("ScreenGui")
-tpGui.Name = "TPToolGUI"
-tpGui.ResetOnSpawn = false
-tpGui.Parent = player:WaitForChild("PlayerGui")
-
-local tpFrame = Instance.new("Frame")
-tpFrame.Size = UDim2.new(0, 200, 0, 120)
-tpFrame.Position = UDim2.new(0.5, -100, 0.5, -60)
-tpFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-tpFrame.BackgroundTransparency = 0.15
-tpFrame.BorderSizePixel = 1
-tpFrame.BorderColor3 = Color3.fromRGB(60, 60, 80)
-tpFrame.Active = true
-tpFrame.Draggable = true
-tpFrame.Parent = tpGui
-
-local tpTitle = Instance.new("TextLabel")
-tpTitle.Size = UDim2.new(1, 0, 0, 30)
-tpTitle.Text = "XDXD's TP Tool"
-tpTitle.TextColor3 = Color3.fromRGB(255, 200, 0)
-tpTitle.TextScaled = true
-tpTitle.BackgroundTransparency = 1
-tpTitle.Parent = tpFrame
-
-local tpStatus = Instance.new("TextLabel")
-tpStatus.Size = UDim2.new(1, 0, 0, 25)
-tpStatus.Position = UDim2.new(0, 0, 0, 35)
-tpStatus.Text = "Click anywhere to teleport"
-tpStatus.TextColor3 = Color3.fromRGB(150, 200, 255)
-tpStatus.TextScaled = true
-tpStatus.BackgroundTransparency = 1
-tpStatus.Parent = tpFrame
-
-local tpClose = Instance.new("TextButton")
-tpClose.Size = UDim2.new(0, 50, 0, 25)
-tpClose.Position = UDim2.new(1, -60, 0, 70)
-tpClose.Text = "Close"
-tpClose.TextColor3 = Color3.fromRGB(255, 255, 255)
-tpClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-tpClose.BorderSizePixel = 0
-tpClose.Parent = tpFrame
-Instance.new("UICorner", tpClose).CornerRadius = UDim.new(0, 5)
-
-tpGui.Enabled = false
-
 local tpMode = false
+local selectionBox = nil
+local tpGui = nil
 
-local function teleportToMouse()
-    local c = player.Character
-    if not c then return end
-    local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso") or c:FindFirstChild("UpperTorso")
-    if not root then return end
-    local hit = player:GetMouse().Hit
-    root.CFrame = CFrame.new(hit.X, hit.Y + 2, hit.Z)
-    tpStatus.Text = "Teleported!"
-    task.wait(1)
-    tpStatus.Text = "Click anywhere to teleport"
+local function createTPTool()
+    if tpGui then
+        tpGui:Destroy()
+        tpGui = nil
+    end
+    tpGui = Instance.new("ScreenGui")
+    tpGui.Name = "XDXD_TPTool"
+    tpGui.Parent = game.CoreGui
+    tpGui.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 120)
+    frame.Position = UDim2.new(1, -210, 0.5, -60)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 1
+    frame.BorderColor3 = Color3.fromRGB(60, 60, 80)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = tpGui
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Text = "XDXD's TP Tool"
+    title.TextColor3 = Color3.fromRGB(255, 200, 0)
+    title.TextScaled = true
+    title.BackgroundTransparency = 1
+    title.Parent = frame
+    
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, 0, 0, 25)
+    status.Position = UDim2.new(0, 0, 0, 35)
+    status.Text = "Click TP START to teleport"
+    status.TextColor3 = Color3.fromRGB(150, 200, 255)
+    status.TextScaled = true
+    status.BackgroundTransparency = 1
+    status.Parent = frame
+    
+    local tpStart = Instance.new("TextButton")
+    tpStart.Size = UDim2.new(0, 80, 0, 25)
+    tpStart.Position = UDim2.new(0.5, -85, 0, 70)
+    tpStart.Text = "TP START"
+    tpStart.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tpStart.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    tpStart.BorderSizePixel = 0
+    tpStart.Parent = frame
+    Instance.new("UICorner", tpStart).CornerRadius = UDim.new(0, 5)
+    
+    local tpClose = Instance.new("TextButton")
+    tpClose.Size = UDim2.new(0, 80, 0, 25)
+    tpClose.Position = UDim2.new(0.5, 5, 0, 70)
+    tpClose.Text = "Close"
+    tpClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tpClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    tpClose.BorderSizePixel = 0
+    tpClose.Parent = frame
+    Instance.new("UICorner", tpClose).CornerRadius = UDim.new(0, 5)
+    
+    local function teleportToMouse()
+        local c = player.Character
+        if not c then return end
+        local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso") or c:FindFirstChild("UpperTorso")
+        if not root then return end
+        local hit = player:GetMouse().Hit
+        root.CFrame = CFrame.new(hit.X, hit.Y + 2, hit.Z)
+        status.Text = "Teleported!"
+        task.wait(0.5)
+        status.Text = "Click TP START to teleport"
+        tpMode = false
+        tpStart.Text = "TP START"
+        tpStart.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    end
+    
+    tpStart.MouseButton1Click:Connect(function()
+        tpMode = not tpMode
+        if tpMode then
+            tpStart.Text = "TP ACTIVE"
+            tpStart.BackgroundColor3 = Color3.fromRGB(255, 150, 0)
+            status.Text = "Click anywhere to teleport"
+            if not selectionBox then
+                selectionBox = Instance.new("SelectionBox")
+                selectionBox.Name = "TPSelectionBox"
+                selectionBox.Color3 = Color3.fromRGB(0, 255, 0)
+                selectionBox.LineThickness = 0.1
+                selectionBox.Parent = cmdGui
+            end
+        else
+            tpStart.Text = "TP START"
+            tpStart.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            status.Text = "Click TP START to teleport"
+            if selectionBox then
+                selectionBox.Adornee = nil
+            end
+        end
+    end)
+    
+    tpClose.MouseButton1Click:Connect(function()
+        tpGui:Destroy()
+        tpGui = nil
+        tpMode = false
+        if selectionBox then
+            selectionBox:Destroy()
+            selectionBox = nil
+        end
+    end)
+    
+    local mouse = player:GetMouse()
+    mouse.Move:Connect(function()
+        if tpMode and selectionBox then
+            local target = mouse.Target
+            if target and target:IsA("BasePart") then
+                selectionBox.Adornee = target
+            else
+                selectionBox.Adornee = nil
+            end
+        end
+    end)
+    mouse.Button1Down:Connect(function()
+        if tpMode and tpGui then
+            teleportToMouse()
+        end
+    end)
 end
 
 local function toggleTPTool()
-    tpMode = not tpMode
-    tpGui.Enabled = tpMode
-    if tpMode then
-        tpStatus.Text = "Click anywhere to teleport"
+    if tpGui then
+        tpGui:Destroy()
+        tpGui = nil
+        tpMode = false
+        if selectionBox then
+            selectionBox:Destroy()
+            selectionBox = nil
+        end
+    else
+        createTPTool()
     end
 end
 
-tpClose.MouseButton1Click:Connect(toggleTPTool)
+local function loadESP()
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-esp-gui-224252"))()
+end
 
-player:GetMouse().Button1Down:Connect(function()
-    if tpMode then
-        teleportToMouse()
+local helpGui = nil
+
+local function createHelpGUI()
+    if helpGui then
+        helpGui:Destroy()
+        helpGui = nil
+        return
     end
-end)
+    
+    helpGui = Instance.new("ScreenGui")
+    helpGui.Name = "XDXD_Help"
+    helpGui.Parent = game.CoreGui
+    helpGui.ResetOnSpawn = false
+    
+    local helpFrame = Instance.new("Frame")
+    helpFrame.Size = UDim2.new(0, 300, 0, 350)
+    helpFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+    helpFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    helpFrame.BackgroundTransparency = 0.15
+    helpFrame.BorderSizePixel = 1
+    helpFrame.BorderColor3 = Color3.fromRGB(60, 60, 80)
+    helpFrame.Active = true
+    helpFrame.Draggable = true
+    helpFrame.Parent = helpGui
+    Instance.new("UICorner", helpFrame).CornerRadius = UDim.new(0, 10)
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Text = "XDXD's Commands"
+    title.TextColor3 = Color3.fromRGB(255, 200, 0)
+    title.TextScaled = true
+    title.BackgroundTransparency = 1
+    title.Parent = helpFrame
+    
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 25)
+    closeBtn.Position = UDim2.new(1, -35, 0, 2)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = helpFrame
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
+    closeBtn.MouseButton1Click:Connect(function()
+        if helpGui then helpGui:Destroy() helpGui = nil end
+    end)
+    
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, 0, 1, -35)
+    scroll.Position = UDim2.new(0, 0, 0, 30)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.ScrollBarThickness = 4
+    scroll.Parent = helpFrame
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 4)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scroll
+    
+    local commands = {
+        {cmd = "fly", desc = "Toggle fly", type = "universal"},
+        {cmd = "unfly", desc = "Disable fly", type = "universal"},
+        {cmd = "noclip", desc = "Toggle noclip", type = "universal"},
+        {cmd = "clip", desc = "Disable noclip", type = "universal"},
+        {cmd = "speed [1-999]", desc = "Set walkspeed", type = "universal"},
+        {cmd = "esp", desc = "Load ESP GUI", type = "universal"},
+        {cmd = "espmm2", desc = "Toggle MM2 ESP", type = "mm2"},
+        {cmd = "autogun", desc = "TP to dropped gun", type = "mm2"},
+        {cmd = "tptool", desc = "Toggle teleport tool", type = "universal"},
+    }
+    
+    for _, info in ipairs(commands) do
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -10, 0, 28)
+        row.BackgroundTransparency = 1
+        row.Parent = scroll
+        
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0, 12, 0, 12)
+        dot.Position = UDim2.new(0, 5, 0.5, -6)
+        if info.type == "universal" then
+            dot.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            dot.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+        end
+        dot.BorderSizePixel = 0
+        dot.Parent = row
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+        
+        local cmdLabel = Instance.new("TextLabel")
+        cmdLabel.Size = UDim2.new(0, 100, 1, 0)
+        cmdLabel.Position = UDim2.new(0, 22, 0, 0)
+        cmdLabel.Text = info.cmd
+        cmdLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        cmdLabel.TextScaled = true
+        cmdLabel.BackgroundTransparency = 1
+        cmdLabel.Font = Enum.Font.GothamBold
+        cmdLabel.Parent = row
+        
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(1, -130, 1, 0)
+        descLabel.Position = UDim2.new(0, 125, 0, 0)
+        descLabel.Text = info.desc
+        descLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+        descLabel.TextScaled = true
+        descLabel.BackgroundTransparency = 1
+        descLabel.Font = Enum.Font.Gotham
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = row
+        
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end
+end
 
 local function handleCommand(cmd)
     cmd = cmd:lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -446,11 +744,11 @@ local function handleCommand(cmd)
         if num then setSpeed(num) end
         return
     end
-    if cmd == "esp" then
-        espGui.Enabled = not espGui.Enabled
-        return
-    end
+    if cmd == "esp" then loadESP() return end
+    if cmd == "espmm2" then toggleESP() return end
+    if cmd == "autogun" then autoGun() return end
     if cmd == "tptool" then toggleTPTool() return end
+    if cmd == "help" then createHelpGUI() return end
     cmdbar.Text = ""
 end
 
@@ -496,6 +794,8 @@ player.CharacterAdded:Connect(function(c)
             if part:IsA("BasePart") then part.CanCollide = false end
         end
     end
+    if espEnabled then refreshESP() end
 end)
 
-print("XDXD's CMD Loaded")
+print("XDXD's Commands Loaded!")
+print("Commands: fly, unfly, noclip, clip, speed [1-999], esp, espmm2, autogun, tptool, help")
